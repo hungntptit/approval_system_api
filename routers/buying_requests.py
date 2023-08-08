@@ -17,15 +17,17 @@ router = APIRouter()
 @router.get("/buying_requests")
 async def get_buying_requests_by_user(user: schemas.User = Depends(get_current_user),
                                       db: Session = Depends(get_db)):
-    results = buying_request_db.get_buying_requests_by_role(db, user)
+    if user.role == "user":
+        results = buying_request_db.get_buying_requests_by_user(db, user)
+    else:
+        results = buying_request_db.get_buying_requests_by_role(db, user)
     return results
 
 
 @router.get("/buying_requests/{id}")
 async def get_buying_requests_by_id(id: int, user: schemas.User = Depends(get_current_user),
                                     db: Session = Depends(get_db)):
-    results = buying_request_db.get_buying_request_by_id(db, id)
-    return results
+    return buying_request_db.get_buying_request_by_id(db, id)
 
 
 @router.post("/buying_requests")
@@ -57,7 +59,7 @@ async def approve_buying_request(id: int, action: str, user: schemas.User = Depe
             raise HTTPException(status_code=400, detail="Cannot approve.")
         return buying_request_db.set_buying_request_status(db, id, next_status)
     elif action == "deny":
-        return buying_request_db.set_buying_request_status(db, id, "denied by " + user.role)
+        return buying_request_db.deny_buying_request(db, id, user)
     elif action == "update":
         return buying_request_db.update_buying_request(db, id, buying_request)
 
