@@ -19,10 +19,14 @@ def convert_result_to_process_step(result):
     return ls
 
 
-def get_process_steps_by_process_id(db: Session, process_id: int):
+def get_process_steps(db: Session, process_id: int, role: str = None):
     query = select(models.ProcessStep).where(
         (models.ProcessStep.process_id == process_id)
     )
+    if role:
+        query = select(models.ProcessStep).where(
+            (models.ProcessStep.process_id == process_id) & (models.ProcessStep.role == role)
+        )
     result = db.scalars(query).all()
     return convert_result_to_process_step(result)
 
@@ -32,7 +36,7 @@ def get_process_step(db: Session, process_id: int, process_step: int):
         (models.ProcessStep.process_id == process_id) & (models.ProcessStep.step == process_step)
     )
     result = db.scalars(query).all()
-    ls = convert_result_to_process_step(result)[0]
+    ls = convert_result_to_process_step(result)
     if len(ls) > 0:
         return ls[0]
     return None
