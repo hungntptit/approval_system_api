@@ -1,5 +1,7 @@
 import json
 
+from fastapi import HTTPException
+
 import schemas
 from sqlalchemy import select, insert, update
 from sqlalchemy.orm import Session, joinedload
@@ -40,25 +42,46 @@ def update_buying_request(db: Session, id: int, buying_request: schemas.BuyingRe
     return updated_row
 
 
-def approve_buying_request(db: Session, buying_request_id: int, role: str):
-    db_buying_request = get_buying_request_by_id(buying_request_id)
-    print(db_buying_request.values())
-    query = update(models.BuyingRequest).where(
-        (models.BuyingRequest.is_deleted == False)
-        & (models.BuyingRequest.id == buying_request_id)
-    ).values(
-        status="approved by " + role)
-    # result = db.execute(query)
-    # db.commit()
-    updated_row = db.scalars(select(models.BuyingRequest).where(models.BuyingRequest.id == buying_request_id)).first()
-    return updated_row
+def approve_buying_request(db: Session, buying_request_id: int, user: models.User):
+    db_buying_request = get_buying_request_by_id(db, buying_request_id)
+    if db_buying_request.step.role != user.role:
+        raise HTTPException(status_code=401, detail="Not authenticated to approve")
+    elif db_buying_request.is_done:
+        raise HTTPException(status_code=400, detail="Buying request have already denied or completed")
+    else:
+        process_steps = process_step_db.get_process_steps(db, db_buying_request.process_id)
+        process_step = process_step_db.get_process_step(db, db_buying_request.process_id,
+                                                        db_buying_request.process_step)
+        step = process_step.step
+        is_done = False
+        if process_step.step < process_steps[-1].step:
+            step += 1
+        else:
+            is_done = True
+        query = update(models.BuyingRequest).where(
+            (models.BuyingRequest.is_deleted == False) &
+            (models.BuyingRequest.id == buying_request_id)
+        ).values(
+            status=process_step.approve_status,
+            process_step=step,
+            is_done=is_done
+        )
+        result = db.execute(query)
+        db.commit()
+        updated_row = db.scalars(
+            select(models.BuyingRequest).where(models.BuyingRequest.id == buying_request_id)).first()
+        return updated_row
 
 
 def deny_buying_request(db: Session, buying_request_id: int, user: models.User):
-    db_buying_request = get_buying_request_by_id(buying_request_id)
-    if db_buying_request.process_step.role == user.role:
-        process_step = process_step_db.get_process_steps_by_process_id(db, db_buying_request.process_id,
-                                                                       db_buying_request.process_step)
+    db_buying_request = get_buying_request_by_id(db, buying_request_id)
+    if db_buying_request.step.role != user.role:
+        raise HTTPException(status_code=401, detail="Not authenticated to deny")
+    elif db_buying_request.is_done:
+        raise HTTPException(status_code=400, detail="Buying request have already denied or completed")
+    else:
+        process_step = process_step_db.get_process_step(db, db_buying_request.process_id,
+                                                        db_buying_request.process_step)
         query = update(models.BuyingRequest).where(
             (models.BuyingRequest.is_deleted == False)
             & (models.BuyingRequest.id == buying_request_id)
@@ -71,7 +94,6 @@ def deny_buying_request(db: Session, buying_request_id: int, user: models.User):
         updated_row = db.scalars(
             select(models.BuyingRequest).where(models.BuyingRequest.id == buying_request_id)).first()
         return updated_row
-    return None
 
 
 def set_buying_request_status(db: Session, buying_request_id: int, status: str):
