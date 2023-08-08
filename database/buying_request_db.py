@@ -39,14 +39,6 @@ def update_buying_request(db: Session, id: int, buying_request: schemas.BuyingRe
     return updated_row
 
 
-def get_buying_request_by_id(db: Session, buying_request_id: int):
-    query = select(models.BuyingRequest).where(
-        (models.BuyingRequest.is_deleted == False) & (models.BuyingRequest.id == buying_request_id)
-    )
-    result = db.scalars(query)
-    return result.first()
-
-
 # def get_buying_requests_by_role(db: Session, user: schemas.User):
 #     query = ""
 #     print(user.role)
@@ -76,15 +68,6 @@ def get_buying_request_by_id(db: Session, buying_request_id: int):
 #         )
 #     results = db.scalars(query)
 #     return results.all()
-
-
-def get_car_bookings_by_status(db: Session, status: str):
-    query = select(models.BuyingRequest).where(
-        (models.BuyingRequest.is_deleted == False)
-        & models.BuyingRequest.status.like(f"%{status}%")
-    )
-    result = db.scalars(query)
-    return result.all()
 
 
 def approve_buying_request(db: Session, buying_request_id: int, role: str):
@@ -125,14 +108,7 @@ def set_buying_request_status(db: Session, buying_request_id: int, status: str):
     return updated_row
 
 
-def get_buying_requests_by_role(db: Session):
-    query = select(models.BuyingRequest).join(models.ProcessStep,
-                                              (models.BuyingRequest.process_id == models.ProcessStep.process_id)
-                                              & (models.BuyingRequest.process_step == models.ProcessStep.step)) \
-        .where(models.ProcessStep.role == "manager")
-    print(query)
-    result = db.scalars(query).all()
-    # return result.all()
+def convert_result_to_buying_request(result):
     list = []
     for buying_request in result:
         br = models.BuyingRequest(
@@ -156,3 +132,33 @@ def get_buying_requests_by_role(db: Session):
         )
         list.append(br)
     return list
+
+
+def get_buying_request_by_id(db: Session, buying_request_id: int):
+    query = select(models.BuyingRequest).join(models.ProcessStep,
+                                              (models.BuyingRequest.process_id == models.ProcessStep.process_id)
+                                              & (models.BuyingRequest.process_step == models.ProcessStep.step)) \
+        .where((models.BuyingRequest.is_deleted == False) & (models.BuyingRequest.id == buying_request_id))
+    print(query)
+    result = db.scalars(query).all()
+    return convert_result_to_buying_request(result)
+
+
+def get_buying_requests_by_role(db: Session, user: schemas.User):
+    query = select(models.BuyingRequest).join(models.ProcessStep,
+                                              (models.BuyingRequest.process_id == models.ProcessStep.process_id)
+                                              & (models.BuyingRequest.process_step == models.ProcessStep.step)) \
+        .where((models.BuyingRequest.is_deleted == False) & (models.ProcessStep.role == user.role))
+    # print(query)
+    result = db.scalars(query).all()
+    return convert_result_to_buying_request(result)
+
+
+def get_buying_requests_by_user(db: Session, user: schemas.User):
+    query = select(models.BuyingRequest).join(models.ProcessStep,
+                                              (models.BuyingRequest.process_id == models.ProcessStep.process_id)
+                                              & (models.BuyingRequest.process_step == models.ProcessStep.step)) \
+        .where((models.BuyingRequest.is_deleted == False) & (models.BuyingRequest.user_id == user.id))
+    # print(query)
+    result = db.scalars(query).all()
+    return convert_result_to_buying_request(result)
