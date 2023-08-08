@@ -38,26 +38,14 @@ async def add_buying_request(buying_request: schemas.BuyingRequestCreate,
 
 
 @router.put("/buying_requests/{id}")
-async def approve_buying_request(id: int, action: str, user: schemas.User = Depends(get_current_user),
-                                 db: Session = Depends(get_db),
-                                 buying_request: schemas.BuyingRequestCreate | None = None):
+async def buying_request_action(id: int, action: str, user: schemas.User = Depends(get_current_user),
+                                db: Session = Depends(get_db),
+                                buying_request: schemas.BuyingRequestCreate | None = None):
     db_buying_request = buying_request_db.get_buying_request_by_id(db, id)
     current_status = db_buying_request.status
     next_status = current_status
     if action == "approve":
-        if ((user.role == "manager" and db_buying_request.status == "pending") |
-                (user.role == "tech" and db_buying_request.status == "approved by hr")):
-            next_status = "approved by " + user.role
-        elif user.role == "hr":
-            if db_buying_request.status == "approved by manager":
-                next_status = "approved by " + user.role
-            elif db_buying_request.status == "approved by tech":
-                next_status = "buying"
-            elif db_buying_request.status == "buying":
-                next_status = "completed"
-        else:
-            raise HTTPException(status_code=400, detail="Cannot approve.")
-        return buying_request_db.set_buying_request_status(db, id, next_status)
+        return buying_request_db.approve_buying_request(db, id, user)
     elif action == "deny":
         return buying_request_db.deny_buying_request(db, id, user)
     elif action == "update":
