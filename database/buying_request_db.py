@@ -5,6 +5,7 @@ from sqlalchemy import select, insert, update
 from sqlalchemy.orm import Session, joinedload
 
 import models
+from database import process_step_db
 
 
 def add_buying_request(db: Session, buying_request: schemas.BuyingRequestCreate):
@@ -56,9 +57,20 @@ def approve_buying_request(db: Session, buying_request_id: int, role: str):
 def deny_buying_request(db: Session, buying_request_id: int, user: models.User):
     db_buying_request = get_buying_request_by_id(buying_request_id)
     if db_buying_request.process_step.role == user.role:
-
-
-        return db_buying_request
+        process_step = process_step_db.get_process_steps_by_process_id(db, db_buying_request.process_id,
+                                                                       db_buying_request.process_step)
+        query = update(models.BuyingRequest).where(
+            (models.BuyingRequest.is_deleted == False)
+            & (models.BuyingRequest.id == buying_request_id)
+        ).values(
+            status=process_step.deny_status,
+            is_done=True
+        )
+        result = db.execute(query)
+        db.commit()
+        updated_row = db.scalars(
+            select(models.BuyingRequest).where(models.BuyingRequest.id == buying_request_id)).first()
+        return updated_row
     return None
 
 
