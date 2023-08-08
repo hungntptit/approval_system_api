@@ -1,7 +1,7 @@
 import json
 
 import schemas
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert, update, and_
 from sqlalchemy.orm import Session, joinedload
 
 import models
@@ -26,7 +26,7 @@ def add_room_booking(db: Session, room_booking: schemas.RoomBookingCreate):
 
 def update_room_booking(db: Session, id: int, room_booking: schemas.RoomBookingCreate):
     query = update(models.RoomBooking).where(
-        (models.RoomBooking.is_deleted == False) & (models.RoomBooking.id == id)
+        and_(models.RoomBooking.is_deleted == False, models.RoomBooking.id == id)
     ).values(
         user_id=room_booking.user_id,
         room_id=room_booking.room_id,

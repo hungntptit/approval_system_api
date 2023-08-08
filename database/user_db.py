@@ -1,4 +1,4 @@
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, and_
 
 import schemas
 from sqlalchemy.orm import Session
@@ -19,7 +19,7 @@ def get_user_by_username(db: Session, username: str):
 
 
 def get_user_by_email(db: Session, email: str):
-    query = select(models.User).where((models.User.email == email) & (models.User.is_deleted == False))
+    query = select(models.User).where(and_(models.User.email == email, models.User.is_deleted == False))
     result = db.scalars(query)
     return result.first()
 

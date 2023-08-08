@@ -152,7 +152,7 @@ def get_buying_requests_by_role(db: Session, user: schemas.User):
                 models.BuyingRequest.process_step.in_(next_process_steps_int)
                 )
         )
-    ).order_by(models.BuyingRequest.process_step, models.BuyingRequest.is_done)
+    ).order_by(models.BuyingRequest.process_step.asc(), models.BuyingRequest.is_done.asc())
     # print(query)
     result = db.scalars(query).all()
     return convert_result_to_buying_request(result)
@@ -161,7 +161,7 @@ def get_buying_requests_by_role(db: Session, user: schemas.User):
 def get_buying_requests_by_user(db: Session, user: schemas.User):
     query = select(models.BuyingRequest).join(models.ProcessStep).where(
         and_(models.BuyingRequest.is_deleted == False, models.BuyingRequest.user_id == user.id)
-    ).order_by(models.BuyingRequest.process_step, models.BuyingRequest.is_done)
+    ).order_by(models.BuyingRequest.process_step.asc(), models.BuyingRequest.is_done.asc())
     # print(query)
     result = db.scalars(query).all()
     return convert_result_to_buying_request(result)

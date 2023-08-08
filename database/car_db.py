@@ -1,6 +1,6 @@
 import json
 
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert, update, and_
 
 import models
 import schemas
@@ -24,7 +24,7 @@ def add_car(db: Session, car: schemas.CarCreate):
 
 
 def get_car_by_id(db: Session, car_id: int):
-    query = select(models.Car).where((models.Car.is_deleted == False) & (models.Car.id == car_id))
+    query = select(models.Car).where(and_(models.Car.is_deleted == False, models.Car.id == car_id))
     print(query)
     return db.scalars(query).first()
 
@@ -35,7 +35,7 @@ def get_all_cars(db: Session):
 
 
 def update_car(db: Session, car_id: int, car: schemas.CarCreate):
-    query = update(models.Car).where((models.Car.is_deleted == False) & (models.Car.id == car_id)).values(
+    query = update(models.Car).where(and_(models.Car.is_deleted == False, models.Car.id == car_id)).values(
         name=car.name,
         seats=car.seats
     )
@@ -46,7 +46,7 @@ def update_car(db: Session, car_id: int, car: schemas.CarCreate):
 
 
 def delete_car(db: Session, car_id: int):
-    query = update(models.Car).where((models.Car.is_deleted == False) & (models.Car.id == car_id)).values(is_deleted=1)
+    query = update(models.Car).where(and_(models.Car.is_deleted == False, models.Car.id == car_id)).values(is_deleted=1)
     result = db.execute(query)
     db.commit()
     deleted_row = db.scalars(select(models.Car).where(models.Car.id == car_id)).first()

@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import Session
 
 import models
@@ -20,20 +20,18 @@ def convert_result_to_process_step(result):
 
 
 def get_process_steps(db: Session, process_id: int, role: str = None):
-    query = select(models.ProcessStep).where(
-        (models.ProcessStep.process_id == process_id)
-    )
+    query = select(models.ProcessStep).where(models.ProcessStep.process_id == process_id)
     if role:
         query = select(models.ProcessStep).where(
-            (models.ProcessStep.process_id == process_id) & (models.ProcessStep.role == role)
-        )
+            and_(models.ProcessStep.process_id == process_id, models.ProcessStep.role == role)
+        ).order_by(models.ProcessStep.step)
     result = db.scalars(query).all()
     return convert_result_to_process_step(result)
 
 
 def get_process_step(db: Session, process_id: int, process_step: int):
     query = select(models.ProcessStep).where(
-        (models.ProcessStep.process_id == process_id) & (models.ProcessStep.step == process_step)
+        and_(models.ProcessStep.process_id == process_id, models.ProcessStep.step == process_step)
     )
     result = db.scalars(query).all()
     ls = convert_result_to_process_step(result)

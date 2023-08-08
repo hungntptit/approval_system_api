@@ -1,6 +1,6 @@
 import json
 
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert, update, and_
 
 import models
 import schemas
@@ -24,7 +24,7 @@ def search_room(db: Session, key: str):
 
 
 def get_room_by_id(db: Session, room_id: int):
-    query = select(models.Room).where((models.Room.id == room_id) & (models.Room.is_deleted == False))
+    query = select(models.Room).where(and_(models.Room.id == room_id, models.Room.is_deleted == False))
     print(query)
     return db.scalars(query).first()
 
@@ -35,7 +35,7 @@ def get_all_rooms(db: Session):
 
 
 def update_room(db: Session, room_id: int, room: schemas.RoomCreate):
-    query = update(models.Room).where((models.Room.id == room_id) & (models.Room.is_deleted == False)).values(
+    query = update(models.Room).where(and_(models.Room.id == room_id, models.Room.is_deleted == False)).values(
         name=room.name,
         capacity=room.capacity)
     result = db.execute(query)
@@ -45,7 +45,8 @@ def update_room(db: Session, room_id: int, room: schemas.RoomCreate):
 
 
 def delete_room(db: Session, room_id: int):
-    query = update(models.Room).where((models.Room.id == room_id) & (models.Room.is_deleted == False)).values(is_deleted=1)
+    query = update(models.Room).where(and_(models.Room.id == room_id, models.Room.is_deleted == False)).values(
+        is_deleted=1)
     result = db.execute(query)
     db.commit()
     deleted_row = db.scalars(select(models.Room).where(models.Room.id == room_id)).first()
