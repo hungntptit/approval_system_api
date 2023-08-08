@@ -147,7 +147,7 @@ class BuyingRequest(Base):
     place = Column(String(length=255))
     created_at = Column(TIMESTAMP, default=datetime.datetime.utcnow())
     updated_at = Column(TIMESTAMP, onupdate=datetime.datetime.utcnow())
-    status = Column(String(length=255), default="pending")
+    status = Column(String(length=255), default="Đang chờ xử lý")
     is_done = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
 
