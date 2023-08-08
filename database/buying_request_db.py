@@ -39,37 +39,6 @@ def update_buying_request(db: Session, id: int, buying_request: schemas.BuyingRe
     return updated_row
 
 
-# def get_buying_requests_by_role(db: Session, user: schemas.User):
-#     query = ""
-#     print(user.role)
-#     if user.role == "user":
-#         query = select(models.BuyingRequest).where(
-#             (models.BuyingRequest.is_deleted == False)
-#             & (models.BuyingRequest.user_id == user.id))
-#     elif user.role == "manager":
-#         query = select(models.BuyingRequest).where(
-#             (models.BuyingRequest.is_deleted == False)
-#             & (models.BuyingRequest.status.like("%pending%") | models.BuyingRequest.status.like("%manager%"))
-#         )
-#     elif user.role == "tech":
-#         query = select(models.BuyingRequest).where(
-#             (models.BuyingRequest.is_deleted == False)
-#             & (models.BuyingRequest.status.like("%approved by hr%") | models.BuyingRequest.status.like("%tech%"))
-#         )
-#     elif user.role == "hr":
-#         query = select(models.BuyingRequest).where(
-#             (models.BuyingRequest.is_deleted == False)
-#             & (models.BuyingRequest.status.like("%approved by manager%") |
-#                models.BuyingRequest.status.like("%approved by tech%") |
-#                models.BuyingRequest.status.like("%hr%") |
-#                models.BuyingRequest.status.like("%buying%") |
-#                models.BuyingRequest.status.like("%completed%")
-#                )
-#         )
-#     results = db.scalars(query)
-#     return results.all()
-
-
 def approve_buying_request(db: Session, buying_request_id: int, role: str):
     db_buying_request = get_buying_request_by_id(buying_request_id)
     print(db_buying_request.values())
@@ -84,16 +53,13 @@ def approve_buying_request(db: Session, buying_request_id: int, role: str):
     return updated_row
 
 
-def deny_buying_request(db: Session, buying_request_id: int, role: str):
-    query = update(models.BuyingRequest).where(
-        (models.BuyingRequest.is_deleted == False)
-        & (models.BuyingRequest.id == buying_request_id)
-    ).values(
-        status="denied by " + role)
-    result = db.execute(query)
-    db.commit()
-    updated_row = db.scalars(select(models.BuyingRequest).where(models.BuyingRequest.id == buying_request_id)).first()
-    return updated_row
+def deny_buying_request(db: Session, buying_request_id: int, user: models.User):
+    db_buying_request = get_buying_request_by_id(buying_request_id)
+    if db_buying_request.process_step.role == user.role:
+
+
+        return db_buying_request
+    return None
 
 
 def set_buying_request_status(db: Session, buying_request_id: int, status: str):
@@ -139,9 +105,12 @@ def get_buying_request_by_id(db: Session, buying_request_id: int):
                                               (models.BuyingRequest.process_id == models.ProcessStep.process_id)
                                               & (models.BuyingRequest.process_step == models.ProcessStep.step)) \
         .where((models.BuyingRequest.is_deleted == False) & (models.BuyingRequest.id == buying_request_id))
-    print(query)
+    # print(query)
     result = db.scalars(query).all()
-    return convert_result_to_buying_request(result)
+    list = convert_result_to_buying_request(result)
+    if len(list) > 0:
+        return list[0]
+    return None
 
 
 def get_buying_requests_by_role(db: Session, user: schemas.User):
