@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from routers import users, rooms, room_bookings, car_bookings, departments, cars, buying_requests
+from routers import users, rooms, room_bookings, car_bookings, departments, cars, buying_requests, process_steps
 
 app = FastAPI()
 
@@ -26,4 +26,5 @@ app.include_router(cars.router)
 app.include_router(car_bookings.router)
 
 app.include_router(departments.router)
+app.include_router(process_steps.router)
 app.include_router(buying_requests.router)

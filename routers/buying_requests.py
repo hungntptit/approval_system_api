@@ -42,8 +42,8 @@ async def buying_request_action(id: int, action: str, user: schemas.User = Depen
                                 db: Session = Depends(get_db),
                                 buying_request: schemas.BuyingRequestCreate | None = None):
     db_buying_request = buying_request_db.get_buying_request_by_id(db, id)
-    current_status = db_buying_request.status
-    next_status = current_status
+    if not db_buying_request:
+        raise HTTPException(status_code=400, detail="Buying request not found.")
     if action == "approve":
         return buying_request_db.approve_buying_request(db, id, user)
     elif action == "deny":

@@ -141,6 +141,27 @@ class Department(DepartmentBase):
         from_attributes = True
 
 
+class ProcessStepBase(BaseModel):
+    process_id: int
+    step: int
+    name: str
+    role: str
+    approve_status: str
+    deny_status: str
+
+
+class ProcessStepCreate(ProcessStepBase):
+    pass
+
+
+class ProcessStep(ProcessStepBase):
+    id: int
+    is_deleted: bool
+
+    class Config:
+        from_attributes = True
+
+
 class BuyingRequestBase(BaseModel):
     user_id: int
     department_id: int
