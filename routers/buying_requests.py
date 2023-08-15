@@ -34,6 +34,8 @@ async def get_buying_requests_by_id(id: int, user: schemas.User = Depends(get_cu
 async def add_buying_request(buying_request: schemas.BuyingRequestCreate,
                              user: schemas.User = Depends(get_current_user),
                              db: Session = Depends(get_db)):
+    if user.role != "user":
+        raise HTTPException(status_code=400, detail="Not authorized to add buying request")
     return buying_request_db.add_buying_request(db, buying_request)
 
 
@@ -49,6 +51,8 @@ async def buying_request_action(id: int, action: str, user: schemas.User = Depen
     elif action == "deny":
         return buying_request_db.deny_buying_request(db, id, user)
     elif action == "update":
+        if user.id != db_buying_request.user_id:
+            raise HTTPException(status_code=400, detail="Not authorized to update buying request")
         return buying_request_db.update_buying_request(db, id, buying_request)
 
 

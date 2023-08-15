@@ -56,7 +56,6 @@ class Room(RoomBase):
 class RoomBookingBase(BaseModel):
     user_id: int
     room_id: int
-    process_step_id: int
     title: str
     place: str
     participation: int
@@ -71,6 +70,7 @@ class RoomBookingCreate(RoomBookingBase):
 
 class RoomBooking(RoomBookingBase):
     id: int
+    process_step_id: int
     created_at: datetime
     updated_at: datetime
     status: str
@@ -101,7 +101,6 @@ class Car(CarBase):
 class CarBookingBase(BaseModel):
     user_id: int
     car_id: int
-    process_step_id: int
     title: str
     place: str
     start_time: datetime
@@ -118,6 +117,7 @@ class CarBookingCreate(CarBookingBase):
 
 class CarBooking(CarBookingBase):
     id: int
+    process_step_id: int
     created_at: datetime
     updated_at: datetime
     status: str
@@ -168,7 +168,6 @@ class ProcessStep(ProcessStepBase):
 class BuyingRequestBase(BaseModel):
     user_id: int
     department_id: int
-    process_step_id: int
     title: str
     description: str
     approve_before: datetime
@@ -181,6 +180,7 @@ class BuyingRequestCreate(BuyingRequestBase):
 
 class BuyingRequest(BuyingRequestBase):
     id: int
+    process_step_id: int
     created_at: datetime
     updated_at: datetime
     status: str

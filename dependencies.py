@@ -24,7 +24,7 @@ def get_db():
 
 SECRET_KEY = "1d400dc44eb021dfa81dbc7c1b4fb51f3b32ae56b6574e19795b045cb4e84ea1"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

@@ -1,16 +1,22 @@
+import datetime
 import json
 
+from fastapi import HTTPException
+
 import schemas
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert, update, and_, or_
 from sqlalchemy.orm import Session, joinedload
 
 import models
+from database import process_step_db
 
 
 def add_car_booking(db: Session, car_booking: schemas.CarBookingCreate):
+    process_step = process_step_db.get_process_step_by_process_id_and_step(db, 2, 1)
     query = insert(models.CarBooking).values(
         user_id=car_booking.user_id,
         car_id=car_booking.car_id,
+        process_step_id=process_step.id,
         title=car_booking.title,
         place=car_booking.place,
         start_time=car_booking.start_time,
@@ -28,7 +34,7 @@ def add_car_booking(db: Session, car_booking: schemas.CarBookingCreate):
 
 def update_car_booking(db: Session, id: int, car_booking: schemas.CarBookingCreate):
     query = update(models.CarBooking).where(
-        (models.CarBooking.is_deleted == False) & (models.CarBooking.id == id)).values(
+        and_(models.CarBooking.is_deleted == False, models.CarBooking.id == id)).values(
         user_id=car_booking.user_id,
         car_id=car_booking.car_id,
         title=car_booking.title,
@@ -46,76 +52,129 @@ def update_car_booking(db: Session, id: int, car_booking: schemas.CarBookingCrea
     return updated_row
 
 
-def get_car_booking_by_id(db: Session, car_booking_id: int):
-    query = select(models.CarBooking).where(
-        (models.CarBooking.is_deleted == False) & (models.CarBooking.id == car_booking_id)
-    )
-    result = db.scalars(query)
-    return result.first()
+def convert_result_to_car_booking(result):
+    ls = []
+    for car_booking in result:
+        rb = models.CarBooking(
+            id=car_booking.id,
+            user_id=car_booking.user_id,
+            car_id=car_booking.car_id,
+            process_step_id=car_booking.process_step_id,
+            title=car_booking.title,
+            place=car_booking.place,
+            start_time=car_booking.start_time,
+            end_time=car_booking.end_time,
+            origin=car_booking.origin,
+            destination=car_booking.destination,
+            distance=car_booking.distance,
+            number_of_people=car_booking.number_of_people,
+            created_at=car_booking.created_at,
+            updated_at=car_booking.updated_at,
+            status=car_booking.status,
+            is_done=car_booking.is_done,
+            is_deleted=car_booking.is_deleted,
 
-
-def get_car_bookings_by_user(db: Session, user_id: int):
-    query = select(models.CarBooking).where(
-        (models.CarBooking.is_deleted == False)
-        & (models.CarBooking.user_id == user_id)
-    )
-    results = db.scalars(query)
-    return results.all()
-
-
-def get_car_bookings_by_role(db: Session, user: schemas.User):
-    query = ""
-    print(user.role)
-    if user.role == "user":
-        query = select(models.CarBooking).where(
-            (models.CarBooking.is_deleted == False)
-            & (models.CarBooking.user_id == user.id))
-    elif user.role == "manager":
-        query = select(models.CarBooking).where(
-            (models.CarBooking.is_deleted == False)
-            & (models.CarBooking.status.like("%pending%") | models.CarBooking.status.like("%manager%"))
+            car=car_booking.car,
+            process_step=car_booking.process_step
         )
-    elif user.role == "driver":
-        query = select(models.CarBooking).where(
-            (models.CarBooking.is_deleted == False)
-            & (models.CarBooking.status.like("%approved by manager%") | models.CarBooking.status.like("%driver%"))
+        ls.append(rb)
+    return ls
+
+
+def approve_car_booking(db: Session, car_booking_id: int, user: schemas.User):
+    db_car_booking = get_car_booking_by_id(db, car_booking_id)
+    if db_car_booking.process_step.role != user.role:
+        raise HTTPException(status_code=401, detail="Not authorized to approve")
+    elif db_car_booking.is_done:
+        raise HTTPException(status_code=400, detail="Room booking have already denied or completed")
+    elif db_car_booking.start_time < datetime.datetime.now().time():
+        raise HTTPException(status_code=400, detail="Cannot approve after start time")
+    else:
+        process_steps = process_step_db.get_process_steps(db, db_car_booking.process_step.process_id)
+        current_process_step = process_step_db.get_process_step_by_process_id_and_step(db,
+                                                                                       db_car_booking.process_step.process_id,
+                                                                                       db_car_booking.process_step.step)
+        next_process_step = current_process_step
+        is_done = False
+        for i in range(len(process_steps)):
+            if current_process_step.id == process_steps[i].id:
+                if i == len(process_steps) - 1:
+                    is_done = True
+                else:
+                    next_process_step = process_steps[i + 1]
+                break
+        query = update(models.CarBooking).where(
+            and_(models.CarBooking.is_deleted == False, models.CarBooking.id == car_booking_id)
+        ).values(
+            status=current_process_step.approve_status,
+            process_step_id=next_process_step.id,
+            is_done=is_done
         )
-    results = db.scalars(query)
-    return results.all()
+        result = db.execute(query)
+        db.commit()
+        updated_row = db.scalars(
+            select(models.CarBooking).where(models.CarBooking.id == car_booking_id)).first()
+        return updated_row
 
 
-def get_car_bookings_by_status(db: Session, status: str):
-    query = select(models.CarBooking).where(
-        (models.CarBooking.is_deleted == False)
-        & models.CarBooking.status.like(f"%{status}%")
-    )
-    result = db.scalars(query)
-    return result.all()
+def deny_car_booking(db: Session, car_booking_id: int, user: schemas.User):
+    db_car_booking = get_car_booking_by_id(db, car_booking_id)
+    if db_car_booking.process_step.role != user.role:
+        raise HTTPException(status_code=401, detail="Not authorized to deny")
+    elif db_car_booking.is_done:
+        raise HTTPException(status_code=400, detail="Car booking have already denied or completed")
+    else:
+        process_step = process_step_db.get_process_step_by_process_id_and_step(db,
+                                                                               db_car_booking.process_step.process_id,
+                                                                               db_car_booking.process_step.step)
+        query = update(models.CarBooking).where(
+            and_(models.CarBooking.is_deleted == False, models.CarBooking.id == car_booking_id)
+        ).values(
+            status=process_step.deny_status,
+            is_done=True
+        )
+        result = db.execute(query)
+        db.commit()
+        updated_row = db.scalars(
+            select(models.CarBooking).where(models.CarBooking.id == car_booking_id)).first()
+        return updated_row
 
 
-def approve_car_booking(db: Session, car_booking_id: int, role: str):
-    query = update(models.CarBooking).where(
-        (models.CarBooking.is_deleted == False)
-        & (models.CarBooking.id == car_booking_id)
-    ).values(
-        status="approved by " + role)
-    result = db.execute(query)
-    db.commit()
-    updated_row = db.scalars(select(models.CarBooking).where(models.CarBooking.id == car_booking_id)).first()
-    return updated_row
-
-
-def deny_car_booking(db: Session, car_booking_id: int, role: str):
-    query = update(models.CarBooking).where(
-        (models.CarBooking.is_deleted == False)
-        & (models.CarBooking.id == car_booking_id)
-    ).values(
-        status="denied by " + role)
-    result = db.execute(query)
-    db.commit()
-    updated_row = db.scalars(select(models.CarBooking).where(models.CarBooking.id == car_booking_id)).first()
-    return updated_row
-
+# def get_car_booking_by_id(db: Session, car_booking_id: int):
+#     query = select(models.CarBooking).where(
+#         and_(models.CarBooking.is_deleted == False, models.CarBooking.id == car_booking_id))
+#     result = db.scalars(query)
+#     ls = convert_result_to_car_booking(result)
+#     if len(ls) > 0:
+#         return ls[0]
+#     return None
+#
+#
+# def get_car_bookings_by_role(db: Session, user: schemas.User):
+#     process_steps = process_step_db.get_process_steps(db, 2, user.role)
+#     process_steps_int = [i.step for i in process_steps]
+#     next_process_steps_int = [i.step + 1 for i in process_steps]
+#     query = select(models.CarBooking).join(models.ProcessStep).where(
+#         and_(
+#             models.CarBooking.is_deleted == False,
+#             or_(models.ProcessStep.step.in_(process_steps_int),
+#                 models.ProcessStep.step.in_(next_process_steps_int)
+#                 )
+#         )
+#     ).order_by(models.ProcessStep.step.asc(), models.CarBooking.is_done.asc(),
+#                models.CarBooking.booking_date.asc())
+#     result = db.scalars(query).all()
+#     return convert_result_to_car_booking(result)
+#
+#
+# def get_car_bookings_by_user(db: Session, user: schemas.User):
+#     query = select(models.CarBooking).join(models.ProcessStep).where(
+#         and_(models.CarBooking.is_deleted == False, models.CarBooking.user_id == user.id)
+#     ).order_by(models.ProcessStep.step.asc(), models.CarBooking.is_done.asc(),
+#                models.CarBooking.booking_date.asc())
+#     result = db.scalars(query).all()
+#     return convert_result_to_car_booking(result)
+#
 
 def check_available_car(db: Session, car_booking: schemas.CarBookingCreate):
     car_id = car_booking.car_id
