@@ -50,33 +50,6 @@ def update_room_booking(db: Session, id: int, room_booking: schemas.RoomBookingC
     return updated_row
 
 
-def convert_result_to_room_booking(result):
-    ls = []
-    for room_booking in result:
-        rb = models.RoomBooking(
-            id=room_booking.id,
-            user_id=room_booking.user_id,
-            room_id=room_booking.room_id,
-            process_step_id=room_booking.process_step_id,
-            title=room_booking.title,
-            place=room_booking.place,
-            participation=room_booking.participation,
-            booking_date=room_booking.booking_date,
-            start_time=room_booking.start_time,
-            end_time=room_booking.end_time,
-            created_at=room_booking.created_at,
-            updated_at=room_booking.updated_at,
-            status=room_booking.status,
-            is_done=room_booking.is_done,
-            is_deleted=room_booking.is_deleted,
-
-            room=room_booking.room,
-            process_step=room_booking.process_step
-        )
-        ls.append(rb)
-    return ls
-
-
 def check_available_room(db: Session, room_booking: schemas.RoomBookingCreate):
     room_id = room_booking.room_id
     booking_date = room_booking.booking_date

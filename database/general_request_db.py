@@ -35,9 +35,51 @@ def convert_result_to_model(result, model):
             )
             ls.append(rb)
     elif model == models.CarBooking:
-        pass
+        for car_booking in result:
+            cb = models.CarBooking(
+                id=car_booking.id,
+                user_id=car_booking.user_id,
+                car_id=car_booking.car_id,
+                process_step_id=car_booking.process_step_id,
+                title=car_booking.title,
+                place=car_booking.place,
+                start_time=car_booking.start_time,
+                end_time=car_booking.end_time,
+                origin=car_booking.origin,
+                destination=car_booking.destination,
+                distance=car_booking.distance,
+                number_of_people=car_booking.number_of_people,
+                created_at=car_booking.created_at,
+                updated_at=car_booking.updated_at,
+                status=car_booking.status,
+                is_done=car_booking.is_done,
+                is_deleted=car_booking.is_deleted,
+
+                car=car_booking.car,
+                process_step=car_booking.process_step
+            )
+            ls.append(cb)
     elif model == models.BuyingRequest:
-        pass
+        for buying_request in result:
+            br = models.BuyingRequest(
+                id=buying_request.id,
+                user_id=buying_request.user_id,
+                department_id=buying_request.department_id,
+                process_step_id=buying_request.process_step_id,
+                title=buying_request.title,
+                description=buying_request.description,
+                approve_before=buying_request.approve_before,
+                place=buying_request.place,
+                created_at=buying_request.created_at,
+                updated_at=buying_request.updated_at,
+                status=buying_request.status,
+                is_done=buying_request.is_done,
+                is_deleted=buying_request.is_deleted,
+
+                department=buying_request.department,
+                process_step=buying_request.process_step
+            )
+            ls.append(br)
     return ls
 
 

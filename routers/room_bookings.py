@@ -17,16 +17,16 @@ router = APIRouter()
 async def get_room_bookings_by_user(user: schemas.User = Depends(get_current_user),
                                     db: Session = Depends(get_db)):
     if user.role == "user":
-        results = general_model_db.get_model_by_user(db, user, models.RoomBooking)
+        results = general_request_db.get_model_by_user(db, user, models.RoomBooking)
     else:
-        results = general_model_db.get_model_by_role(db, user, models.RoomBooking)
+        results = general_request_db.get_model_by_role(db, user, models.RoomBooking)
     return results
 
 
 @router.get("/room_bookings/{id}")
 async def get_room_bookings_by_id(id: int, user: schemas.User = Depends(get_current_user),
                                   db: Session = Depends(get_db)):
-    results = general_model_db.get_model_by_id(db, id, models.RoomBooking)
+    results = general_request_db.get_model_by_id(db, id, models.RoomBooking)
     return results
 
 
@@ -47,9 +47,9 @@ async def room_booking_action(id: int, action: str, user: schemas.User = Depends
                               db: Session = Depends(get_db),
                               room_booking: schemas.RoomBookingCreate | None = None):
     if action == "approve":
-        return general_model_db.approve_model(db, id, user, models.RoomBooking)
+        return general_request_db.approve_model(db, id, user, models.RoomBooking)
     elif action == "deny":
-        return general_model_db.deny_model(db, id, user, models.RoomBooking)
+        return general_request_db.deny_model(db, id, user, models.RoomBooking)
     elif action == "update":
         room: models.Room = room_db.get_room_by_id(db, room_booking.room_id)
         if room.capacity < room_booking.participation:
