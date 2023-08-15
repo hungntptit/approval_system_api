@@ -8,7 +8,7 @@ import models
 import schemas
 from fastapi import APIRouter, HTTPException
 
-from database import buying_request_db, car_db
+from database import buying_request_db, car_db, general_request_db
 from dependencies import get_current_user, get_db
 
 router = APIRouter()
@@ -18,16 +18,16 @@ router = APIRouter()
 async def get_buying_requests_by_user(user: schemas.User = Depends(get_current_user),
                                       db: Session = Depends(get_db)):
     if user.role == "user":
-        results = buying_request_db.get_buying_requests_by_user(db, user)
+        results = general_request_db.get_model_by_user(db, user, models.BuyingRequest)
     else:
-        results = buying_request_db.get_buying_requests_by_role(db, user)
+        results = general_request_db.get_model_by_role(db, user, models.BuyingRequest)
     return results
 
 
 @router.get("/buying_requests/{id}")
 async def get_buying_requests_by_id(id: int, user: schemas.User = Depends(get_current_user),
                                     db: Session = Depends(get_db)):
-    return buying_request_db.get_buying_request_by_id(db, id)
+    return general_request_db.get_model_by_id(db, id, models.BuyingRequest)
 
 
 @router.post("/buying_requests")
@@ -54,8 +54,3 @@ async def buying_request_action(id: int, action: str, user: schemas.User = Depen
         if user.id != db_buying_request.user_id:
             raise HTTPException(status_code=400, detail="Not authorized to update buying request")
         return buying_request_db.update_buying_request(db, id, buying_request)
-
-
-@router.get("/test")
-async def test(db: Session = Depends(get_db)):
-    return buying_request_db.test(db)

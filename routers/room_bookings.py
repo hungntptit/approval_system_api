@@ -51,6 +51,8 @@ async def room_booking_action(id: int, action: str, user: schemas.User = Depends
     elif action == "deny":
         return general_request_db.deny_model(db, id, user, models.RoomBooking)
     elif action == "update":
+        if user.id != room_booking.user_id:
+            raise HTTPException(status_code=400, detail="Not authorized to update room booking")
         room: models.Room = room_db.get_room_by_id(db, room_booking.room_id)
         if room.capacity < room_booking.participation:
             raise HTTPException(status_code=400, detail="Room does not have enough capacity.")

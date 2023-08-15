@@ -104,8 +104,7 @@ def get_model_by_role(db: Session, user: schemas.User, model):
                 models.ProcessStep.step.in_(next_process_steps_int)
                 )
         )
-    ).order_by(models.ProcessStep.step.asc(), model.is_done.asc(),
-               models.RoomBooking.booking_date.asc())
+    ).order_by(models.ProcessStep.step.asc(), model.is_done.asc())
     result = db.scalars(query).all()
     return convert_result_to_model(result, model)
 
@@ -113,8 +112,7 @@ def get_model_by_role(db: Session, user: schemas.User, model):
 def get_model_by_user(db: Session, user: schemas.User, model):
     query = select(model).join(models.ProcessStep).where(
         and_(model.is_deleted == False, model.user_id == user.id)
-    ).order_by(models.ProcessStep.step.asc(), model.is_done.asc(),
-               model.booking_date.asc())
+    ).order_by(models.ProcessStep.step.asc(), model.is_done.asc())
     result = db.scalars(query).all()
     return convert_result_to_model(result, model)
 
