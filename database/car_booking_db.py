@@ -8,7 +8,7 @@ from sqlalchemy import select, insert, update, and_, or_
 from sqlalchemy.orm import Session, joinedload
 
 import models
-from database import process_step_db
+from database import process_step_db, general_request_db
 
 
 def add_car_booking(db: Session, car_booking: schemas.CarBookingCreate):
@@ -82,7 +82,7 @@ def convert_result_to_car_booking(result):
 
 
 def approve_car_booking(db: Session, car_booking_id: int, user: schemas.User):
-    db_car_booking = get_car_booking_by_id(db, car_booking_id)
+    db_car_booking = general_request_db.get_model_by_id(db, car_booking_id, models.CarBooking)
     if db_car_booking.process_step.role != user.role:
         raise HTTPException(status_code=401, detail="Not authorized to approve")
     elif db_car_booking.is_done:
@@ -118,7 +118,7 @@ def approve_car_booking(db: Session, car_booking_id: int, user: schemas.User):
 
 
 def deny_car_booking(db: Session, car_booking_id: int, user: schemas.User):
-    db_car_booking = get_car_booking_by_id(db, car_booking_id)
+    db_car_booking = general_request_db.get_model_by_id(db, car_booking_id, models.CarBooking)
     if db_car_booking.process_step.role != user.role:
         raise HTTPException(status_code=401, detail="Not authorized to deny")
     elif db_car_booking.is_done:
@@ -139,42 +139,6 @@ def deny_car_booking(db: Session, car_booking_id: int, user: schemas.User):
             select(models.CarBooking).where(models.CarBooking.id == car_booking_id)).first()
         return updated_row
 
-
-# def get_car_booking_by_id(db: Session, car_booking_id: int):
-#     query = select(models.CarBooking).where(
-#         and_(models.CarBooking.is_deleted == False, models.CarBooking.id == car_booking_id))
-#     result = db.scalars(query)
-#     ls = convert_result_to_car_booking(result)
-#     if len(ls) > 0:
-#         return ls[0]
-#     return None
-#
-#
-# def get_car_bookings_by_role(db: Session, user: schemas.User):
-#     process_steps = process_step_db.get_process_steps(db, 2, user.role)
-#     process_steps_int = [i.step for i in process_steps]
-#     next_process_steps_int = [i.step + 1 for i in process_steps]
-#     query = select(models.CarBooking).join(models.ProcessStep).where(
-#         and_(
-#             models.CarBooking.is_deleted == False,
-#             or_(models.ProcessStep.step.in_(process_steps_int),
-#                 models.ProcessStep.step.in_(next_process_steps_int)
-#                 )
-#         )
-#     ).order_by(models.ProcessStep.step.asc(), models.CarBooking.is_done.asc(),
-#                models.CarBooking.booking_date.asc())
-#     result = db.scalars(query).all()
-#     return convert_result_to_car_booking(result)
-#
-#
-# def get_car_bookings_by_user(db: Session, user: schemas.User):
-#     query = select(models.CarBooking).join(models.ProcessStep).where(
-#         and_(models.CarBooking.is_deleted == False, models.CarBooking.user_id == user.id)
-#     ).order_by(models.ProcessStep.step.asc(), models.CarBooking.is_done.asc(),
-#                models.CarBooking.booking_date.asc())
-#     result = db.scalars(query).all()
-#     return convert_result_to_car_booking(result)
-#
 
 def check_available_car(db: Session, car_booking: schemas.CarBookingCreate):
     car_id = car_booking.car_id

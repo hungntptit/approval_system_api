@@ -9,7 +9,7 @@ from sqlalchemy import select, insert, update, and_, or_
 from sqlalchemy.orm import Session, joinedload
 
 import models
-from database import process_step_db, general_model_db
+from database import process_step_db, general_request_db
 
 
 def add_room_booking(db: Session, room_booking: schemas.RoomBookingCreate):

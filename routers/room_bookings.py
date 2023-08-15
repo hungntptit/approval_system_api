@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
-from database import room_booking_db, room_db, general_model_db
+from database import room_booking_db, room_db, general_request_db
 from dependencies import get_current_user, get_db
 
 router = APIRouter()

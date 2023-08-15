@@ -83,9 +83,9 @@ def approve_model(db: Session, model_id: int, user: schemas.User, model):
         raise HTTPException(status_code=401, detail="Not authorized to approve")
     elif db_model.is_done:
         raise HTTPException(status_code=400, detail="Request have already denied or completed")
+
     if model == models.RoomBooking:
-        if (db_model.booking_date == datetime.date.today() and
-            db_model.start_time < datetime.datetime.now().time()) or \
+        if (db_model.booking_date == datetime.date.today() and db_model.start_time < datetime.datetime.now().time()) or \
                 db_model.booking_date < datetime.date.today():
             raise HTTPException(status_code=400, detail="Cannot approve after booking date")
     elif model == models.CarBooking:
@@ -117,8 +117,7 @@ def approve_model(db: Session, model_id: int, user: schemas.User, model):
     )
     result = db.execute(query)
     db.commit()
-    updated_row = db.scalars(
-        select(model).where(model.id == model_id)).first()
+    updated_row = db.scalars(select(model).where(model.id == model_id)).first()
     return updated_row
 
 
@@ -127,19 +126,17 @@ def deny_model(db: Session, model_id: int, user: schemas.User, model):
     if db_model.process_step.role != user.role:
         raise HTTPException(status_code=401, detail="Not authorized to deny")
     elif db_model.is_done:
-        raise HTTPException(status_code=400, detail="Car booking have already denied or completed")
-    else:
-        process_step = process_step_db.get_process_step_by_process_id_and_step(db,
-                                                                               db_model.process_step.process_id,
-                                                                               db_model.process_step.step)
-        query = update(models.CarBooking).where(
-            and_(models.CarBooking.is_deleted == False, models.CarBooking.id == model_id)
-        ).values(
-            status=process_step.deny_status,
-            is_done=True
-        )
-        result = db.execute(query)
-        db.commit()
-        updated_row = db.scalars(
-            select(models.CarBooking).where(models.CarBooking.id == model_id)).first()
-        return updated_row
+        raise HTTPException(status_code=400, detail="Request have already denied or completed")
+    process_step = process_step_db.get_process_step_by_process_id_and_step(db,
+                                                                           db_model.process_step.process_id,
+                                                                           db_model.process_step.step)
+    query = update(models.CarBooking).where(
+        and_(models.CarBooking.is_deleted == False, models.CarBooking.id == model_id)
+    ).values(
+        status=process_step.deny_status,
+        is_done=True
+    )
+    result = db.execute(query)
+    db.commit()
+    updated_row = db.scalars(select(models.CarBooking).where(models.CarBooking.id == model_id)).first()
+    return updated_row
