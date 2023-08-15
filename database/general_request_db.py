@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
-from database import process_step_db
+from database import process_step_db, car_booking_db, room_booking_db
 
 
 def convert_result_to_model(result, model):
@@ -84,8 +84,7 @@ def convert_result_to_model(result, model):
 
 
 def get_model_by_id(db: Session, id: int, model):
-    query = select(model).where(
-        and_(model.is_deleted == False, model.id == id))
+    query = select(model).where(and_(model.is_deleted == False, model.id == id))
     result = db.scalars(query)
     ls = convert_result_to_model(result, model)
     if len(ls) > 0:
@@ -94,7 +93,15 @@ def get_model_by_id(db: Session, id: int, model):
 
 
 def get_model_by_role(db: Session, user: schemas.User, model):
-    process_steps = process_step_db.get_process_steps(db, 1, user.role)
+    process_id = 0
+    if model == models.RoomBooking:
+        process_id = 1
+    elif model == models.CarBooking:
+        process_id = 2
+    elif model == models.BuyingRequest:
+        process_id = 3
+
+    process_steps = process_step_db.get_process_steps(db, process_id, user.role)
     process_steps_int = [i.step for i in process_steps]
     next_process_steps_int = [i.step + 1 for i in process_steps]
     query = select(model).join(models.ProcessStep).where(
@@ -118,7 +125,9 @@ def get_model_by_user(db: Session, user: schemas.User, model):
 
 
 def approve_model(db: Session, model_id: int, user: schemas.User, model):
-    db_model = get_model_by_id(db, model_id)
+    db_model = get_model_by_id(db, model_id, model)
+    if not db_model:
+        raise HTTPException(status_code=401, detail="Request not found")
     if db_model.process_step.role != user.role:
         raise HTTPException(status_code=401, detail="Not authorized to approve")
     elif db_model.is_done:
@@ -128,9 +137,14 @@ def approve_model(db: Session, model_id: int, user: schemas.User, model):
         if (db_model.booking_date == datetime.date.today() and db_model.start_time < datetime.datetime.now().time()) or \
                 db_model.booking_date < datetime.date.today():
             raise HTTPException(status_code=400, detail="Cannot approve after booking date")
+        if not room_booking_db.check_available_room(db, db_model.room_id, db_model.booking_date, db_model.start_time,
+                                                    db_model.end_time):
+            raise HTTPException(status_code=400, detail="Room is not available")
     elif model == models.CarBooking:
-        if db_model.start_time < datetime.datetime.now().time():
+        if db_model.start_time < datetime.datetime.now():
             raise HTTPException(status_code=400, detail="Cannot approve after start time")
+        if not car_booking_db.check_available_car(db, db_model.car_id, db_model.start_time, db_model.end_time):
+            raise HTTPException(status_code=400, detail="Car is not available")
     elif model == models.BuyingRequest:
         if db_model.approve_before < datetime.datetime.now():
             raise HTTPException(status_code=400, detail="Cannot approve after approve date")
@@ -163,6 +177,8 @@ def approve_model(db: Session, model_id: int, user: schemas.User, model):
 
 def deny_model(db: Session, model_id: int, user: schemas.User, model):
     db_model = get_model_by_id(db, model_id, model)
+    if not db_model:
+        raise HTTPException(status_code=401, detail="Request not found")
     if db_model.process_step.role != user.role:
         raise HTTPException(status_code=401, detail="Not authorized to deny")
     elif db_model.is_done:

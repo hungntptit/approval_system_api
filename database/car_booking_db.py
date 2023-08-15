@@ -1,3 +1,5 @@
+import datetime
+
 from sqlalchemy import select, insert, update, and_, or_
 from sqlalchemy.orm import Session
 
@@ -47,15 +49,14 @@ def update_car_booking(db: Session, id: int, car_booking: schemas.CarBookingCrea
     return updated_row
 
 
-def check_available_car(db: Session, car_booking: schemas.CarBookingCreate):
-    car_id = car_booking.car_id
-    start_time = car_booking.start_time
-    end_time = car_booking.end_time
-    query = select(models.CarBooking).where(
+def check_available_car(db: Session, car_id: int, start_time: datetime, end_time: datetime):
+    process_steps = process_step_db.get_process_steps(db, 1)
+    query = select(models.CarBooking).join(models.ProcessStep).where(
         and_(
             models.CarBooking.is_deleted == False,
             models.CarBooking.car_id == car_id,
-            models.CarBooking.process_step.step > 1,
+            models.CarBooking.is_done == True,
+            models.ProcessStep.step == process_steps[-1].step,  # last step - completed
             or_(
                 models.CarBooking.start_time.between(start_time, end_time),
                 models.CarBooking.end_time.between(start_time, end_time),

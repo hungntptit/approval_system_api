@@ -24,8 +24,8 @@ def convert_result_to_process_step(result):
 
 
 def get_process_steps(db: Session, process_id: int, role: str = None):
-    query = select(models.ProcessStep).where(models.ProcessStep.process_id == process_id).order_by(
-        models.ProcessStep.step)
+    query = select(models.ProcessStep).where(models.ProcessStep.process_id == process_id) \
+        .order_by(models.ProcessStep.step)
     if role:
         query = select(models.ProcessStep).where(
             and_(models.ProcessStep.process_id == process_id, models.ProcessStep.role == role,

@@ -36,10 +36,11 @@ async def add_room_booking(room_booking: schemas.RoomBookingCreate, user: schema
     room: models.Room = room_db.get_room_by_id(db, room_booking.room_id)
     if room.capacity < room_booking.participation:
         raise HTTPException(status_code=400, detail="Room does not have enough capacity.")
-    if room_booking_db.check_available_room(db, room_booking):
-        return room_booking_db.add_room_booking(db, room_booking)
-    else:
+    if not room_booking_db.check_available_room(db, room_booking.room_id, room_booking.booking_date,
+                                                room_booking.start_time, room_booking.end_time):
         raise HTTPException(status_code=400, detail="Room is not available.")
+    else:
+        return room_booking_db.add_room_booking(db, room_booking)
 
 
 @router.put("/room_bookings/{id}")
@@ -56,7 +57,8 @@ async def room_booking_action(id: int, action: str, user: schemas.User = Depends
         room: models.Room = room_db.get_room_by_id(db, room_booking.room_id)
         if room.capacity < room_booking.participation:
             raise HTTPException(status_code=400, detail="Room does not have enough capacity.")
-        if room_booking_db.check_available_room(db, room_booking):
-            return room_booking_db.update_room_booking(db, id, room_booking)
+        if not room_booking_db.check_available_room(db, room_booking.room_id, room_booking.booking_date,
+                                                    room_booking.start_time, room_booking.end_time):
+            raise HTTPException(status_code=400, detail="Room is not available.")
         else:
             raise HTTPException(status_code=400, detail="Room is not available.")

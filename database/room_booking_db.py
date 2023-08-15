@@ -50,17 +50,15 @@ def update_room_booking(db: Session, id: int, room_booking: schemas.RoomBookingC
     return updated_row
 
 
-def check_available_room(db: Session, room_booking: schemas.RoomBookingCreate):
-    room_id = room_booking.room_id
-    booking_date = room_booking.booking_date
-    start_time = room_booking.start_time
-    end_time = room_booking.end_time
-    participation = room_booking.participation
-    query = select(models.RoomBooking).where(
+def check_available_room(db: Session, room_id: int, booking_date: datetime.date, start_time: datetime.time,
+                         end_time: datetime.time):
+    process_steps = process_step_db.get_process_steps(db, 1)
+    query = select(models.RoomBooking).join(models.ProcessStep).where(
         and_(
             models.RoomBooking.room_id == room_id,
             models.RoomBooking.is_deleted == False,
-            models.RoomBooking.process_step.step > 1,
+            models.RoomBooking.is_done == True,
+            models.ProcessStep.step == process_steps[-1].step,  # last step - completed
             models.RoomBooking.booking_date == booking_date,
             or_(
                 models.RoomBooking.start_time.between(start_time, end_time),

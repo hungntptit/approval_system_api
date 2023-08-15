@@ -40,10 +40,10 @@ async def add_car_booking(car_booking: schemas.CarBookingCreate, user: schemas.U
         raise HTTPException(status_code=400, detail="Car does not have enough seats.")
     # check = car_booking_db.check_available_car(db, car_booking)
     # print(check)
-    if car_booking_db.check_available_car(db, car_booking):
-        return car_booking_db.add_car_booking(db, car_booking)
-    else:
+    if not car_booking_db.check_available_car(db, car_booking.car_id, car_booking.start_time, car_booking.end_time):
         raise HTTPException(status_code=400, detail="Car is not available.")
+    else:
+        return car_booking_db.add_car_booking(db, car_booking)
 
 
 @router.put("/car_bookings/{id}")
@@ -51,16 +51,16 @@ async def car_booking_action(id: int, action: str, user: schemas.User = Depends(
                              db: Session = Depends(get_db),
                              car_booking: schemas.CarBookingCreate | None = None):
     if action == "approve":
-        return general_request_db.approve_model(db, id, user, models.RoomBooking)
+        return general_request_db.approve_model(db, id, user, models.CarBooking)
     elif action == "deny":
-        return general_request_db.deny_model(db, id, user, models.RoomBooking)
+        return general_request_db.deny_model(db, id, user, models.CarBooking)
     elif action == "update":
         if user.id != car_booking.user_id:
             raise HTTPException(status_code=400, detail="Not authorized to update car booking")
         car: models.Car = car_db.get_car_by_id(db, car_booking.car_id)
         if car.seats < car_booking.number_of_people:
             raise HTTPException(status_code=400, detail="Car does not have enough seats.")
-        if car_booking_db.check_available_car(db, car_booking):
-            return car_booking_db.update_car_booking(db, id, car_booking)
-        else:
+        if not car_booking_db.check_available_car(db, car_booking.car_id, car_booking.start_time, car_booking.end_time):
             raise HTTPException(status_code=400, detail="Car is not available.")
+        else:
+            return car_booking_db.update_car_booking(db, id, car_booking)
