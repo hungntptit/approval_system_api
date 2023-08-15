@@ -1,6 +1,5 @@
 from datetime import datetime, date, time
 
-import timestamp as timestamp
 from pydantic import BaseModel
 
 
@@ -57,6 +56,7 @@ class Room(RoomBase):
 class RoomBookingBase(BaseModel):
     user_id: int
     room_id: int
+    process_step_id: int
     title: str
     place: str
     participation: int
@@ -74,6 +74,7 @@ class RoomBooking(RoomBookingBase):
     created_at: datetime
     updated_at: datetime
     status: str
+    is_done: bool
     is_deleted: bool
 
     class Config:
@@ -100,6 +101,7 @@ class Car(CarBase):
 class CarBookingBase(BaseModel):
     user_id: int
     car_id: int
+    process_step_id: int
     title: str
     place: str
     start_time: datetime
@@ -119,6 +121,7 @@ class CarBooking(CarBookingBase):
     created_at: datetime
     updated_at: datetime
     status: str
+    is_done: bool
     is_deleted: bool
 
     class Config:
@@ -165,6 +168,7 @@ class ProcessStep(ProcessStepBase):
 class BuyingRequestBase(BaseModel):
     user_id: int
     department_id: int
+    process_step_id: int
     title: str
     description: str
     approve_before: datetime
@@ -180,6 +184,7 @@ class BuyingRequest(BuyingRequestBase):
     created_at: datetime
     updated_at: datetime
     status: str
+    is_done: bool
     is_deleted: bool
 
     class Config:

@@ -1,12 +1,9 @@
-import sqlalchemy.exc
-
 from fastapi import HTTPException
-
-import schemas
 from sqlalchemy import select, and_, update, delete, insert
 from sqlalchemy.orm import Session
 
 import models
+import schemas
 
 
 def convert_result_to_process_step(result):
@@ -19,14 +16,16 @@ def convert_result_to_process_step(result):
             name=process_step.name,
             role=process_step.role,
             approve_status=process_step.approve_status,
-            deny_status=process_step.deny_status
+            deny_status=process_step.deny_status,
+            process=process_step.process
         )
         ls.append(ps)
     return ls
 
 
 def get_process_steps(db: Session, process_id: int, role: str = None):
-    query = select(models.ProcessStep).where(models.ProcessStep.process_id == process_id)
+    query = select(models.ProcessStep).where(models.ProcessStep.process_id == process_id).order_by(
+        models.ProcessStep.step)
     if role:
         query = select(models.ProcessStep).where(
             and_(models.ProcessStep.process_id == process_id, models.ProcessStep.role == role,

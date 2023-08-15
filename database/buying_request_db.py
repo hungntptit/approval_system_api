@@ -113,19 +113,19 @@ def deny_buying_request(db: Session, buying_request_id: int, user: models.User):
         return updated_row
 
 
-def set_buying_request_status(db: Session, buying_request_id: int, status: str):
-    query = update(models.BuyingRequest).where(
-        and_(models.BuyingRequest.is_deleted == False, models.BuyingRequest.id == buying_request_id)
-    ).values(
-        status=status)
-    result = db.execute(query)
-    db.commit()
-    updated_row = db.scalars(select(models.BuyingRequest).where(models.BuyingRequest.id == buying_request_id)).first()
-    return updated_row
+# def set_buying_request_status(db: Session, buying_request_id: int, status: str):
+#     query = update(models.BuyingRequest).where(
+#         and_(models.BuyingRequest.is_deleted == False, models.BuyingRequest.id == buying_request_id)
+#     ).values(
+#         status=status)
+#     result = db.execute(query)
+#     db.commit()
+#     updated_row = db.scalars(select(models.BuyingRequest).where(models.BuyingRequest.id == buying_request_id)).first()
+#     return updated_row
 
 
 def convert_result_to_buying_request(result):
-    list = []
+    ls = []
     for buying_request in result:
         br = models.BuyingRequest(
             id=buying_request.id,
@@ -145,8 +145,8 @@ def convert_result_to_buying_request(result):
             department=buying_request.department,
             process_step=buying_request.process_step
         )
-        list.append(br)
-    return list
+        ls.append(br)
+    return ls
 
 
 def get_buying_request_by_id(db: Session, buying_request_id: int):

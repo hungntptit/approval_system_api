@@ -1,16 +1,20 @@
 import json
 
 import schemas
-from sqlalchemy import select, insert, update, and_
+from sqlalchemy import select, insert, update, and_, or_
 from sqlalchemy.orm import Session, joinedload
 
 import models
+from database import process_step_db
 
 
 def add_room_booking(db: Session, room_booking: schemas.RoomBookingCreate):
+    process_step = process_step_db.get_process_step_by_process_id_and_step(db, 1, 1)
+    print(process_step)
     query = insert(models.RoomBooking).values(
         user_id=room_booking.user_id,
         room_id=room_booking.room_id,
+        process_step_id=process_step.id,
         title=room_booking.title,
         place=room_booking.place,
         participation=room_booking.participation,
@@ -43,38 +47,30 @@ def update_room_booking(db: Session, id: int, room_booking: schemas.RoomBookingC
     return updated_row
 
 
-def get_room_booking_by_id(db: Session, room_booking_id: int):
-    query = select(models.RoomBooking).where(models.RoomBooking.id == room_booking_id)
-    result = db.scalars(query)
-    return result.first()
+def convert_result_to_room_booking(result):
+    ls = []
+    for room_booking in result:
+        rb = models.RoomBooking(
+            id=room_booking.id,
+            user_id=room_booking.user_id,
+            room_id=room_booking.room_id,
+            process_step_id=room_booking.process_step_id,
+            title=room_booking.title,
+            place=room_booking.place,
+            participation=room_booking.participation,
+            booking_date=room_booking.booking_date,
+            start_time=room_booking.start_time,
+            end_time=room_booking.end_time,
+            created_at=room_booking.created_at,
+            updated_at=room_booking.updated_at,
+            status=room_booking.status,
+            is_deleted=room_booking.is_deleted,
 
-
-def get_room_bookings_by_user(db: Session, user_id: int):
-    query = select(models.RoomBooking).where(models.RoomBooking.user_id == user_id)
-    results = db.scalars(query)
-    return results.all()
-
-
-def get_room_bookings_by_role(db: Session, user: schemas.User):
-    query = ""
-    print(user.role)
-    if user.role == "user":
-        query = select(models.RoomBooking).where(models.RoomBooking.user_id == user.id)
-    elif user.role == "manager":
-        query = select(models.RoomBooking).where(
-            models.RoomBooking.status.like("%pending%") | models.RoomBooking.status.like("%manager%"))
-    elif user.role == "hr":
-        query = select(models.RoomBooking).where(
-            models.RoomBooking.status.like("%approved by manager%") | models.RoomBooking.status.like("%hr%"))
-
-    results = db.scalars(query)
-    return results.all()
-
-
-def get_room_bookings_by_status(db: Session, status: str):
-    query = select(models.RoomBooking).where(models.RoomBooking.status.like(f"%{status}%"))
-    result = db.scalars(query)
-    return result.all()
+            room=room_booking.room,
+            process_step=room_booking.process_step
+        )
+        ls.append(rb)
+    return ls
 
 
 def approve_room_booking(db: Session, room_booking_id: int, role: str):
@@ -93,6 +89,44 @@ def deny_room_booking(db: Session, room_booking_id: int, role: str):
     db.commit()
     updated_row = db.scalars(select(models.RoomBooking).where(models.RoomBooking.id == room_booking_id)).first()
     return updated_row
+
+
+def get_room_booking_by_id(db: Session, room_booking_id: int):
+    query = select(models.RoomBooking).where(models.RoomBooking.id == room_booking_id)
+    result = db.scalars(query)
+    ls = convert_result_to_room_booking(result)
+    if len(ls) > 0:
+        return ls[0]
+    return None
+
+
+def get_room_bookings_by_role(db: Session, user: schemas.User):
+    process_steps = process_step_db.get_process_steps(db, 1, user.role)
+    process_steps_int = [i.step for i in process_steps]
+    # print(process_steps_int)
+    next_process_steps_int = [i.step + 1 for i in process_steps]
+    query = select(models.RoomBooking).join(models.ProcessStep).where(
+        and_(
+            models.RoomBooking.is_deleted == False,
+            or_(models.ProcessStep.step.in_(process_steps_int),
+                models.ProcessStep.step.in_(next_process_steps_int)
+                )
+        )
+    ).order_by(models.ProcessStep.step.asc(), models.BuyingRequest.is_done.asc(),
+               models.BuyingRequest.approve_before.asc())
+    # print(query)
+    result = db.scalars(query).all()
+    return convert_result_to_room_booking(result)
+
+
+def get_room_bookings_by_user(db: Session, user: schemas.User):
+    query = select(models.RoomBooking).join(models.ProcessStep).where(
+        and_(models.RoomBooking.is_deleted == False, models.RoomBooking.user_id == user.id)
+    ).order_by(models.ProcessStep.step.asc(), models.RoomBooking.is_done.asc(),
+               models.RoomBooking.approve_before.asc())
+    # print(query)
+    result = db.scalars(query).all()
+    return convert_result_to_room_booking(result)
 
 
 def check_available_room(db: Session, room_booking: schemas.RoomBookingCreate):

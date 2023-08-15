@@ -80,7 +80,6 @@ def get_car_bookings_by_role(db: Session, user: schemas.User):
             (models.CarBooking.is_deleted == False)
             & (models.CarBooking.status.like("%approved by manager%") | models.CarBooking.status.like("%driver%"))
         )
-
     results = db.scalars(query)
     return results.all()
 

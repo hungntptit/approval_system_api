@@ -4,7 +4,7 @@ from sqlalchemy import Column, Integer, String, Date, Time, TIMESTAMP, ForeignKe
     Float, UniqueConstraint, inspect
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, as_declarative
+from sqlalchemy.orm import sessionmaker, relationship, as_declarative, backref
 
 SQLALCHEMY_DATABASE_URL = "mysql+mysqldb://root:root@localhost:3306/jwtdb"
 
@@ -16,6 +16,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 # Base = declarative_base()
+
 
 @as_declarative()
 class Base(ReprHelperMixin):
@@ -39,6 +40,37 @@ class User(Base):
     # room_bookings = relationship("RoomBooking", back_populates="user")
 
 
+class Process(Base):
+    __tablename__ = "processes"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(length=255))
+    is_deleted = Column(Boolean, default=False)
+
+    process_steps = relationship("ProcessStep", backref=backref("process", lazy="joined"))
+
+
+class ProcessStep(Base):
+    __tablename__ = "process_steps"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    process_id = Column(Integer, ForeignKey("processes.id"))
+    step = Column(Integer)
+    name = Column(String(length=255))
+    role = Column(String(length=255))
+    approve_status = Column(String(length=255))
+    deny_status = Column(String(length=255))
+    is_deleted = Column(Boolean, default=False)
+
+    # process = relationship("Process", back_populates="process_steps")
+    room_bookings = relationship("RoomBooking", back_populates="process_step", )
+    car_bookings = relationship("CarBooking", back_populates="process_step", )
+    buying_requests = relationship("BuyingRequest", back_populates="process_step", )
+
+    __table_args__ = (
+        UniqueConstraint("process_id", "step", name="process_id_step"),
+    )
+
+
 class Room(Base):
     __tablename__ = "rooms"
 
@@ -56,6 +88,7 @@ class RoomBooking(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     room_id = Column(Integer, ForeignKey("rooms.id"))
+    process_step_id = Column(Integer, ForeignKey("process_steps.id"))
     title = Column(String(length=255))
     place = Column(String(length=255))
     participation = Column(Integer)
@@ -65,10 +98,12 @@ class RoomBooking(Base):
     created_at = Column(TIMESTAMP, default=datetime.datetime.utcnow())
     updated_at = Column(TIMESTAMP, onupdate=datetime.datetime.utcnow())
     status = Column(String(length=255), default="pending")
+    is_done = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
     CheckConstraint("start_time < end_time", name="time_constraint")
 
     room = relationship("Room", back_populates="room_bookings")
+    process_step = relationship("ProcessStep", back_populates="room_bookings")
 
 
 class Car(Base):
@@ -88,6 +123,7 @@ class CarBooking(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     car_id = Column(Integer, ForeignKey("cars.id"))
+    process_step_id = Column(Integer, ForeignKey("process_steps.id"))
     title = Column(String(length=255))
     place = Column(String(length=255))
     start_time = Column(DateTime)
@@ -99,10 +135,12 @@ class CarBooking(Base):
     created_at = Column(TIMESTAMP, default=datetime.datetime.utcnow())
     updated_at = Column(TIMESTAMP, onupdate=datetime.datetime.utcnow())
     status = Column(String(length=255), default="pending")
+    is_done = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
     CheckConstraint("start_time < end_time", name="time_constraint")
 
     car = relationship("Car", back_populates="car_bookings")
+    process_step = relationship("ProcessStep", back_populates="car_bookings")
 
 
 class Department(Base):
@@ -113,35 +151,6 @@ class Department(Base):
     is_deleted = Column(Boolean, default=False)
 
     buying_requests = relationship("BuyingRequest", back_populates="department")
-
-
-class Process(Base):
-    __tablename__ = "processes"
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String(length=255))
-    is_deleted = Column(Boolean, default=False)
-
-    process_step = relationship("ProcessStep", back_populates="process")
-
-
-class ProcessStep(Base):
-    __tablename__ = "process_steps"
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    process_id = Column(Integer, ForeignKey("processes.id"))
-    step = Column(Integer)
-    name = Column(String(length=255))
-    role = Column(String(length=255))
-    approve_status = Column(String(length=255))
-    deny_status = Column(String(length=255))
-    is_deleted = Column(Boolean, default=False)
-
-    process = relationship("Process", back_populates="process_step")
-    buying_requests = relationship("BuyingRequest", back_populates="process_step")
-
-    __table_args__ = (
-        UniqueConstraint("process_id", "step", name="process_id_step"),
-    )
 
 
 class BuyingRequest(Base):
