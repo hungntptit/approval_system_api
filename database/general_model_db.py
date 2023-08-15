@@ -122,18 +122,18 @@ def approve_model(db: Session, model_id: int, user: schemas.User, model):
     return updated_row
 
 
-def deny_car_booking(db: Session, car_booking_id: int, user: schemas.User):
-    db_car_booking = get_car_booking_by_id(db, car_booking_id)
-    if db_car_booking.process_step.role != user.role:
+def deny_model(db: Session, model_id: int, user: schemas.User, model):
+    db_model = get_model_by_id(db, model_id, model)
+    if db_model.process_step.role != user.role:
         raise HTTPException(status_code=401, detail="Not authorized to deny")
-    elif db_car_booking.is_done:
+    elif db_model.is_done:
         raise HTTPException(status_code=400, detail="Car booking have already denied or completed")
     else:
         process_step = process_step_db.get_process_step_by_process_id_and_step(db,
-                                                                               db_car_booking.process_step.process_id,
-                                                                               db_car_booking.process_step.step)
+                                                                               db_model.process_step.process_id,
+                                                                               db_model.process_step.step)
         query = update(models.CarBooking).where(
-            and_(models.CarBooking.is_deleted == False, models.CarBooking.id == car_booking_id)
+            and_(models.CarBooking.is_deleted == False, models.CarBooking.id == model_id)
         ).values(
             status=process_step.deny_status,
             is_done=True
@@ -141,6 +141,5 @@ def deny_car_booking(db: Session, car_booking_id: int, user: schemas.User):
         result = db.execute(query)
         db.commit()
         updated_row = db.scalars(
-            select(models.CarBooking).where(models.CarBooking.id == car_booking_id)).first()
+            select(models.CarBooking).where(models.CarBooking.id == model_id)).first()
         return updated_row
-

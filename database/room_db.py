@@ -16,13 +16,6 @@ def add_room(db: Session, room: schemas.RoomCreate):
     return inserted_row
 
 
-def search_room(db: Session, key: str):
-    key = f"%{key}%"
-    query = select(models.Room).where(models.Room.name.like(key) & models.Room.is_deleted == False)
-    print(query)
-    return db.scalars(query).all()
-
-
 def get_room_by_id(db: Session, room_id: int):
     query = select(models.Room).where(and_(models.Room.id == room_id, models.Room.is_deleted == False))
     print(query)

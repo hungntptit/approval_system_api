@@ -47,9 +47,9 @@ async def room_booking_action(id: int, action: str, user: schemas.User = Depends
                               db: Session = Depends(get_db),
                               room_booking: schemas.RoomBookingCreate | None = None):
     if action == "approve":
-        return room_booking_db.approve_room_booking(db, id, user)
+        return general_model_db.approve_model(db, id, user, models.RoomBooking)
     elif action == "deny":
-        return room_booking_db.deny_room_booking(db, id, user)
+        return general_model_db.deny_model(db, id, user, models.RoomBooking)
     elif action == "update":
         room: models.Room = room_db.get_room_by_id(db, room_booking.room_id)
         if room.capacity < room_booking.participation:
