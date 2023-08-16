@@ -1,12 +1,14 @@
 import datetime
+
 from represent import ReprHelperMixin
 from sqlalchemy import Column, Integer, String, Date, Time, TIMESTAMP, ForeignKey, Boolean, CheckConstraint, DateTime, \
     Float, UniqueConstraint, inspect
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, as_declarative, backref
 
-SQLALCHEMY_DATABASE_URL = "mysql+mysqldb://root:root@localhost:3306/jwtdb"
+# SQLALCHEMY_DATABASE_URL = "mysql+mysqldb://root:root@localhost:3306/approval_system_db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+
 
 engine = create_engine(
     # SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
