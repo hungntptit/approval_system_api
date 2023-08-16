@@ -1,14 +1,13 @@
 #####
 ##### Car Booking APIs
 #####
+from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 
 import models
 import schemas
-from fastapi import APIRouter, HTTPException
-
-from database import buying_request_db, car_db, general_request_db
+from database import buying_request_db, general_request_db
 from dependencies import get_current_user, get_db
 
 router = APIRouter()
@@ -43,13 +42,13 @@ async def add_buying_request(buying_request: schemas.BuyingRequestCreate,
 async def buying_request_action(id: int, action: str, user: schemas.User = Depends(get_current_user),
                                 db: Session = Depends(get_db),
                                 buying_request: schemas.BuyingRequestCreate | None = None):
-    db_buying_request = buying_request_db.get_buying_request_by_id(db, id)
+    db_buying_request = general_request_db.get_model_by_id(db, id, models.BuyingRequest)
     if not db_buying_request:
         raise HTTPException(status_code=400, detail="Buying request not found.")
     if action == "approve":
-        return buying_request_db.approve_buying_request(db, id, user)
+        return general_request_db.approve_model(db, id, user, models.BuyingRequest)
     elif action == "deny":
-        return buying_request_db.deny_buying_request(db, id, user)
+        return general_request_db.deny_model(db, id, user, models.BuyingRequest)
     elif action == "update":
         if user.id != db_buying_request.user_id:
             raise HTTPException(status_code=400, detail="Not authorized to update buying request")
