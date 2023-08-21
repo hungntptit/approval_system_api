@@ -1,0 +1,24 @@
+version: '3.8'
+
+networks:
+  mynetwork:
+    name: mynetwork
+    external: true
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: approval_system_api
+    hostname: approval_system_api
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DB: approval_system_db
+    networks:
+      - mynetwork

@@ -6,9 +6,16 @@ from sqlalchemy import Column, Integer, String, Date, Time, TIMESTAMP, ForeignKe
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, relationship, as_declarative, backref
 
-# SQLALCHEMY_DATABASE_URL = "mysql+mysqldb://root:root@localhost:3306/approval_system_db"
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+mysql_host = "mysql"
+mysql_user = "root"
+mysql_password = "root"
+port = 3306
+mysql_db = "approval_system_db"
 
+# Create the database connection URL
+SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{port}/{mysql_db}"
+# SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
+print(SQLALCHEMY_DATABASE_URL)
 
 engine = create_engine(
     # SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
